@@ -1,0 +1,183 @@
+.workflow-designer-container {
+    height: calc(100vh - 120px);
+    display: flex;
+    flex-direction: column;
+}
+
+.workflow-designer-header {
+    padding: 15px;
+    background: #f7f7f7;
+    border-bottom: 1px solid #d1d8dd;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.workflow-header-left button {
+    margin-right: 5px;
+}
+
+.workflow-header-right {
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.workflow-header-right #help-guide {
+    background: #5e64ff;
+    color: white;
+    border: none;
+}
+
+.workflow-header-right #help-guide:hover {
+    background: #4650dd;
+    color: white;
+}
+
+.workflow-header-right #help-guide i {
+    margin-right: 5px;
+    font-size: 14px;
+}
+
+.workflow-designer-main {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+}
+
+.workflow-designer-sidebar {
+    width: 300px;
+    background: #fff;
+    border-right: 1px solid #d1d8dd;
+    overflow-y: auto;
+    padding: 15px;
+}
+
+.sidebar-section {
+    margin-bottom: 20px;
+}
+
+.sidebar-section h6 {
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: #36414c;
+}
+
+.workflow-designer-canvas {
+    flex: 1;
+    position: relative;
+    background: #fafbfc;
+}
+
+#bpmn-canvas {
+    width: 100%;
+    height: 100%;
+}
+
+.info-item,
+.property-item {
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.info-item:last-child,
+.property-item:last-child {
+    border-bottom: none;
+}
+
+.info-item strong,
+.property-item strong {
+    display: inline-block;
+    width: 80px;
+}
+
+/* BPMN.js specific styles */
+.djs-container {
+    background: #fff !important;
+}
+
+.bjs-powered-by {
+    display: none;
+}
+
+/* Modal improvements */
+#workflow-list table {
+    margin-top: 15px;
+}
+
+#workflow-list .load-wf-btn {
+    padding: 2px 12px;
+}
+
+/* Help Guide Modal */
+#help-guide-modal .modal-content {
+    max-height: 90vh;
+}
+
+#help-guide-modal .help-guide-content h3 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+}
+
+#help-guide-modal .help-guide-content h4 {
+    color: #34495e;
+    margin-top: 20px;
+    margin-bottom: 15px;
+    font-size: 18px;
+}
+
+#help-guide-modal .help-guide-content h5 {
+    color: #5e64ff;
+    font-size: 16px;
+    margin-top: 10px;
+}
+
+#help-guide-modal .help-guide-content hr {
+    margin: 25px 0;
+    border-top: 2px solid #ecf0f1;
+}
+
+#help-guide-modal .help-guide-content ul,
+#help-guide-modal .help-guide-content ol {
+    margin-bottom: 15px;
+}
+
+#help-guide-modal .help-guide-content li {
+    margin-bottom: 8px;
+}
+
+#help-guide-modal .help-guide-content code {
+    background: #f8f9fa;
+    padding: 2px 6px;
+    border-radius: 3px;
+    color: #e83e8c;
+    font-size: 90%;
+}
+
+#help-guide-modal .help-guide-content .badge {
+    font-size: 11px;
+    padding: 4px 8px;
+}
+
+#help-guide-modal .help-guide-content .table {
+    font-size: 14px;
+}
+
+#help-guide-modal .help-guide-content .alert {
+    border-radius: 6px;
+}
+
+#help-guide-modal .accordion .card {
+    border: 1px solid #dee2e6;
+    margin-bottom: 5px;
+}
+
+#help-guide-modal .accordion .btn-link {
+    color: #5e64ff;
+    text-decoration: none;
+}
+
+#help-guide-modal .accordion .btn-link:hover {
+    color: #4650dd;
+}

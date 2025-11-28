@@ -1,0 +1,18 @@
+include MANIFEST.in
+include requirements.txt
+include *.json
+include *.md
+include *.py
+include *.txt
+recursive-include workflow_engine *.css
+recursive-include workflow_engine *.csv
+recursive-include workflow_engine *.html
+recursive-include workflow_engine *.ico
+recursive-include workflow_engine *.js
+recursive-include workflow_engine *.json
+recursive-include workflow_engine *.md
+recursive-include workflow_engine *.png
+recursive-include workflow_engine *.py
+recursive-include workflow_engine *.svg
+recursive-include workflow_engine *.txt
+recursive-exclude workflow_engine *.pyc

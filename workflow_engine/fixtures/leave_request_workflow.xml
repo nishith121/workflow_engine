@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_LeaveRequest"
+                  targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="Process_LeaveRequest" name="Leave Request Approval" isExecutable="true">
+
+    <bpmn:startEvent id="StartEvent_1" name="Leave Request Submitted">
+      <bpmn:outgoing>Flow_ToManager</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:userTask id="Task_ManagerApproval" name="Manager Approval" assignee="${manager}">
+      <bpmn:documentation>Please review and approve/reject the leave request</bpmn:documentation>
+      <bpmn:incoming>Flow_ToManager</bpmn:incoming>
+      <bpmn:outgoing>Flow_FromManager</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:exclusiveGateway id="Gateway_ManagerDecision" name="Manager Decision">
+      <bpmn:incoming>Flow_FromManager</bpmn:incoming>
+      <bpmn:outgoing>Flow_ManagerApproved</bpmn:outgoing>
+      <bpmn:outgoing>Flow_ManagerRejected</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:userTask id="Task_HRApproval" name="HR Approval" candidateGroups="HR Manager">
+      <bpmn:documentation>HR final approval for leave request</bpmn:documentation>
+      <bpmn:incoming>Flow_ManagerApproved</bpmn:incoming>
+      <bpmn:outgoing>Flow_FromHR</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:exclusiveGateway id="Gateway_HRDecision" name="HR Decision">
+      <bpmn:incoming>Flow_FromHR</bpmn:incoming>
+      <bpmn:outgoing>Flow_HRApproved</bpmn:outgoing>
+      <bpmn:outgoing>Flow_HRRejected</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:scriptTask id="Task_UpdateApproved" name="Update Leave Status - Approved" scriptFormat="python">
+      <bpmn:incoming>Flow_HRApproved</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToApprovedEnd</bpmn:outgoing>
+      <bpmn:script>
+doc = instance.get_reference_doc()
+doc.workflow_state = "Approved"
+doc.save()
+frappe.db.commit()
+      </bpmn:script>
+    </bpmn:scriptTask>
+
+    <bpmn:scriptTask id="Task_UpdateRejected" name="Update Leave Status - Rejected" scriptFormat="python">
+      <bpmn:incoming>Flow_ManagerRejected</bpmn:incoming>
+      <bpmn:incoming>Flow_HRRejected</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToRejectedEnd</bpmn:outgoing>
+      <bpmn:script>
+doc = instance.get_reference_doc()
+doc.workflow_state = "Rejected"
+doc.save()
+frappe.db.commit()
+      </bpmn:script>
+    </bpmn:scriptTask>
+
+    <bpmn:endEvent id="EndEvent_Approved" name="Leave Approved">
+      <bpmn:incoming>Flow_ToApprovedEnd</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:endEvent id="EndEvent_Rejected" name="Leave Rejected">
+      <bpmn:incoming>Flow_ToRejectedEnd</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Sequence Flows -->
+    <bpmn:sequenceFlow id="Flow_ToManager" sourceRef="StartEvent_1" targetRef="Task_ManagerApproval" />
+    <bpmn:sequenceFlow id="Flow_FromManager" sourceRef="Task_ManagerApproval" targetRef="Gateway_ManagerDecision" />
+    <bpmn:sequenceFlow id="Flow_ManagerApproved" name="Approved" sourceRef="Gateway_ManagerDecision" targetRef="Task_HRApproval">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">context.get_variable('task_Task_ManagerApproval_action') == 'Approve'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_ManagerRejected" name="Rejected" sourceRef="Gateway_ManagerDecision" targetRef="Task_UpdateRejected">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">context.get_variable('task_Task_ManagerApproval_action') == 'Reject'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_FromHR" sourceRef="Task_HRApproval" targetRef="Gateway_HRDecision" />
+    <bpmn:sequenceFlow id="Flow_HRApproved" name="Approved" sourceRef="Gateway_HRDecision" targetRef="Task_UpdateApproved">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">context.get_variable('task_Task_HRApproval_action') == 'Approve'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_HRRejected" name="Rejected" sourceRef="Gateway_HRDecision" targetRef="Task_UpdateRejected">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">context.get_variable('task_Task_HRApproval_action') == 'Reject'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_ToApprovedEnd" sourceRef="Task_UpdateApproved" targetRef="EndEvent_Approved" />
+    <bpmn:sequenceFlow id="Flow_ToRejectedEnd" sourceRef="Task_UpdateRejected" targetRef="EndEvent_Rejected" />
+
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_LeaveRequest">
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="152" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="135" y="145" width="70" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ManagerApproval_di" bpmnElement="Task_ManagerApproval">
+        <dc:Bounds x="240" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_ManagerDecision_di" bpmnElement="Gateway_ManagerDecision" isMarkerVisible="true">
+        <dc:Bounds x="395" y="95" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="377" y="65" width="86" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_HRApproval_di" bpmnElement="Task_HRApproval">
+        <dc:Bounds x="500" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_HRDecision_di" bpmnElement="Gateway_HRDecision" isMarkerVisible="true">
+        <dc:Bounds x="655" y="95" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="647" y="65" width="66" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_UpdateApproved_di" bpmnElement="Task_UpdateApproved">
+        <dc:Bounds x="760" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_UpdateRejected_di" bpmnElement="Task_UpdateRejected">
+        <dc:Bounds x="500" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Approved_di" bpmnElement="EndEvent_Approved">
+        <dc:Bounds x="922" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="901" y="145" width="78" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Rejected_di" bpmnElement="EndEvent_Rejected">
+        <dc:Bounds x="662" y="222" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="644" y="265" width="73" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_ToManager_di" bpmnElement="Flow_ToManager">
+        <di:waypoint x="188" y="120" />
+        <di:waypoint x="240" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_FromManager_di" bpmnElement="Flow_FromManager">
+        <di:waypoint x="340" y="120" />
+        <di:waypoint x="395" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ManagerApproved_di" bpmnElement="Flow_ManagerApproved">
+        <di:waypoint x="445" y="120" />
+        <di:waypoint x="500" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="451" y="102" width="49" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ManagerRejected_di" bpmnElement="Flow_ManagerRejected">
+        <di:waypoint x="420" y="145" />
+        <di:waypoint x="420" y="240" />
+        <di:waypoint x="500" y="240" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="431" y="223" width="47" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_FromHR_di" bpmnElement="Flow_FromHR">
+        <di:waypoint x="600" y="120" />
+        <di:waypoint x="655" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_HRApproved_di" bpmnElement="Flow_HRApproved">
+        <di:waypoint x="705" y="120" />
+        <di:waypoint x="760" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="711" y="102" width="49" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_HRRejected_di" bpmnElement="Flow_HRRejected">
+        <di:waypoint x="680" y="145" />
+        <di:waypoint x="680" y="222" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="691" y="183" width="47" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToApprovedEnd_di" bpmnElement="Flow_ToApprovedEnd">
+        <di:waypoint x="860" y="120" />
+        <di:waypoint x="922" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToRejectedEnd_di" bpmnElement="Flow_ToRejectedEnd">
+        <di:waypoint x="600" y="240" />
+        <di:waypoint x="662" y="240" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

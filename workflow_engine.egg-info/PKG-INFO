@@ -1,0 +1,14 @@
+Metadata-Version: 2.4
+Name: workflow_engine
+Version: 1.0.0
+Summary: Enterprise-grade K2-style Workflow Engine with BPMN.js Designer for Frappe
+Author: Frappe
+Author-email: developers@frappe.io
+License-File: LICENSE
+Requires-Dist: frappe
+Requires-Dist: lxml>=4.9.0
+Dynamic: author
+Dynamic: author-email
+Dynamic: license-file
+Dynamic: requires-dist
+Dynamic: summary

@@ -1,0 +1,127 @@
+<div class="workflow-designer-container">
+    <div class="workflow-designer-header">
+        <div class="workflow-header-left">
+            <button class="btn btn-primary btn-sm" id="new-workflow">
+                <i class="fa fa-plus"></i> New Workflow
+            </button>
+            <button class="btn btn-default btn-sm" id="load-workflow">
+                <i class="fa fa-folder-open"></i> Load
+            </button>
+            <button class="btn btn-success btn-sm" id="save-workflow" disabled>
+                <i class="fa fa-save"></i> Save
+            </button>
+            <button class="btn btn-default btn-sm" id="export-workflow" disabled>
+                <i class="fa fa-download"></i> Export
+            </button>
+            <button class="btn btn-default btn-sm" id="import-workflow">
+                <i class="fa fa-upload"></i> Import
+            </button>
+        </div>
+        <div class="workflow-header-right">
+            <button class="btn btn-default btn-sm" id="help-guide" title="How to use Workflow Designer">
+                <i class="fa fa-question-circle"></i> Help
+            </button>
+            <span id="current-workflow-name" class="text-muted">No workflow loaded</span>
+        </div>
+    </div>
+
+    <div class="workflow-designer-main">
+        <div class="workflow-designer-sidebar">
+            <div class="sidebar-section">
+                <h6>Workflow Info</h6>
+                <div id="workflow-info">
+                    <p class="text-muted">Load or create a workflow to get started</p>
+                </div>
+            </div>
+            <div class="sidebar-section">
+                <h6>Properties</h6>
+                <div id="properties-panel">
+                    <p class="text-muted">Select an element to view properties</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="workflow-designer-canvas">
+            <div id="bpmn-canvas"></div>
+        </div>
+    </div>
+
+    <!-- Workflow Properties Modal -->
+    <div class="modal fade" id="workflow-properties-modal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Workflow Properties</h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="workflow-properties-form">
+                        <div class="form-group">
+                            <label>Workflow Name *</label>
+                            <input type="text" class="form-control" name="workflow_name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Description</label>
+                            <textarea class="form-control" name="description" rows="3"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Linked DocType *</label>
+                            <input type="text" class="form-control" name="linked_doctype" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Is Active</label>
+                            <input type="checkbox" name="is_active">
+                        </div>
+                        <div class="form-group">
+                            <label>Workflow Config (JSON)</label>
+                            <textarea class="form-control" name="workflow_config" rows="5"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="save-workflow-properties">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Workflow Modal -->
+    <div class="modal fade" id="load-workflow-modal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Load Workflow</h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div id="workflow-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Guide Modal -->
+    <div class="modal fade" id="help-guide-modal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa fa-question-circle"></i> Workflow Designer Guide</h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                    <div id="help-guide-content" class="help-guide-content"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

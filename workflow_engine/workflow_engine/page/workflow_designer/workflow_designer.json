@@ -1,0 +1,23 @@
+{
+ "creation": "2025-01-26 00:00:00.000000",
+ "doctype": "Page",
+ "icon": "fa fa-sitemap",
+ "idx": 0,
+ "modified": "2025-01-26 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Workflow Engine",
+ "name": "workflow_designer",
+ "owner": "Administrator",
+ "page_name": "Workflow Designer",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Workflow Manager"
+  }
+ ],
+ "standard": "Yes",
+ "system_page": 0,
+ "title": "Workflow Designer"
+}
