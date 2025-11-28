@@ -22,43 +22,115 @@ var WorkflowDesigner = function(page) {
 WorkflowDesigner.prototype.make = function() {
     var self = this;
     
-    $(self.page.body).html(frappe.render_template('workflow_designer'));
+    // Show loading indicator
+    $(self.page.body).html('<div class="text-center p-5"><i class="fa fa-spinner fa-spin fa-3x text-primary"></i><p class="mt-3 text-muted">Loading Workflow Designer...</p></div>');
     
-    self.loadBpmnLibraries().then(function() {
-        self.setupBpmnModeler();
-        self.setupEventListeners();
-        self.createNewDiagram();
-    });
+    self.loadBpmnLibraries()
+        .then(function() {
+            console.log('[Workflow Designer] Libraries loaded successfully');
+            $(self.page.body).html(frappe.render_template('workflow_designer'));
+            self.setupBpmnModeler();
+            self.setupEventListeners();
+            self.createNewDiagram();
+        })
+        .catch(function(err) {
+            console.error('[Workflow Designer] Failed to initialize:', err);
+            $(self.page.body).html(
+                '<div class="alert alert-danger m-5">' +
+                '<h4><i class="fa fa-exclamation-triangle"></i> Failed to Load Workflow Designer</h4>' +
+                '<p>Could not load required libraries. Please check your internet connection and try refreshing the page.</p>' +
+                '<p class="text-muted"><small>Error: ' + (err.message || err) + '</small></p>' +
+                '<button class="btn btn-primary mt-3" onclick="location.reload()"><i class="fa fa-refresh"></i> Retry</button>' +
+                '</div>'
+            );
+        });
 };
 
 WorkflowDesigner.prototype.loadBpmnLibraries = function() {
     return new Promise(function(resolve, reject) {
-        if (window.BpmnJS) {
-            resolve();
-            return;
+        console.log('[Workflow Designer] Starting library load...');
+        var promises = [];
+        
+        // Load BPMN.js if not already loaded
+        if (!window.BpmnJS) {
+            console.log('[Workflow Designer] Loading BPMN.js from CDN...');
+            promises.push(new Promise(function(bpmnResolve, bpmnReject) {
+                var script = document.createElement('script');
+                script.src = 'https://unpkg.com/bpmn-js@11.5.0/dist/bpmn-modeler.production.min.js';
+                script.onload = function() {
+                    // Give it a moment to initialize the global
+                    setTimeout(function() {
+                        if (window.BpmnJS) {
+                            console.log('[Workflow Designer] BPMN.js loaded successfully');
+                            bpmnResolve();
+                        } else {
+                            console.error('[Workflow Designer] Failed to load BPMN.js - global variable not available');
+                            bpmnReject(new Error('BpmnJS not available after script load'));
+                        }
+                    }, 100);
+                };
+                script.onerror = function(error) {
+                    console.error('[Workflow Designer] Failed to load BPMN.js script:', error);
+                    bpmnReject(new Error('Failed to load BPMN.js from CDN'));
+                };
+                document.head.appendChild(script);
+
+                var link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = 'https://unpkg.com/bpmn-js@11.5.0/dist/assets/diagram-js.css';
+                document.head.appendChild(link);
+
+                var link2 = document.createElement('link');
+                link2.rel = 'stylesheet';
+                link2.href = 'https://unpkg.com/bpmn-js@11.5.0/dist/assets/bpmn-js.css';
+                document.head.appendChild(link2);
+                
+                var link3 = document.createElement('link');
+                link3.rel = 'stylesheet';
+                link3.href = 'https://unpkg.com/bpmn-js@11.5.0/dist/assets/bpmn-font/css/bpmn-embedded.css';
+                document.head.appendChild(link3);
+            }));
+        } else {
+            console.log('[Workflow Designer] BPMN.js already loaded');
         }
-
-        var script = document.createElement('script');
-        script.src = 'https://unpkg.com/bpmn-js@11.5.0/dist/bpmn-modeler.development.js';
-        script.onload = function() {
-            console.log('BPMN.js loaded successfully');
+        
+        // Load Monaco Editor if not already loaded
+        if (!window.monaco) {
+            console.log('[Workflow Designer] Loading Monaco Editor from CDN...');
+            promises.push(new Promise(function(monacoResolve, monacoReject) {
+                // Add loader script
+                var loaderScript = document.createElement('script');
+                loaderScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js';
+                loaderScript.onload = function() {
+                    // Configure Monaco loader
+                    require.config({ 
+                        paths: { 
+                            'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' 
+                        }
+                    });
+                    
+                    // Load Monaco editor
+                    require(['vs/editor/editor.main'], function() {
+                        console.log('[Workflow Designer] Monaco Editor loaded successfully');
+                        monacoResolve();
+                    });
+                };
+                loaderScript.onerror = function() {
+                    console.warn('[Workflow Designer] Monaco Editor failed to load, will use textarea fallback');
+                    monacoResolve(); // Resolve anyway to continue
+                };
+                document.head.appendChild(loaderScript);
+            }));
+        } else {
+            console.log('[Workflow Designer] Monaco Editor already loaded');
+        }
+        
+        if (promises.length === 0) {
+            console.log('[Workflow Designer] All libraries already loaded');
             resolve();
-        };
-        script.onerror = function() {
-            frappe.msgprint('Failed to load BPMN.js library');
-            reject();
-        };
-        document.head.appendChild(script);
-
-        var link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = 'https://unpkg.com/bpmn-js@11.5.0/dist/assets/diagram-js.css';
-        document.head.appendChild(link);
-
-        var link2 = document.createElement('link');
-        link2.rel = 'stylesheet';
-        link2.href = 'https://unpkg.com/bpmn-js@11.5.0/dist/assets/bpmn-font/css/bpmn-embedded.css';
-        document.head.appendChild(link2);
+        } else {
+            Promise.all(promises).then(resolve).catch(reject);
+        }
     });
 };
 
@@ -364,24 +436,14 @@ WorkflowDesigner.prototype.importWorkflow = function() {
 
 WorkflowDesigner.prototype.onSelectionChanged = function(e) {
     var element = e.newSelection[0];
+    this.currentElement = element;
 
     if (!element) {
         $('#properties-panel').html('<p class="text-muted">Select an element to view properties</p>');
         return;
     }
 
-    var html =
-        '<div class="property-item">' +
-            '<strong>ID:</strong> ' + element.id +
-        '</div>' +
-        '<div class="property-item">' +
-            '<strong>Type:</strong> ' + element.type +
-        '</div>' +
-        '<div class="property-item">' +
-            '<strong>Name:</strong> ' + (element.businessObject.name || 'N/A') +
-        '</div>';
-
-    $('#properties-panel').html(html);
+    this.renderPropertiesPanel(element);
 };
 
 WorkflowDesigner.prototype.onDiagramChanged = function() {
@@ -471,4 +533,350 @@ WorkflowDesigner.prototype.showHelpGuide = function() {
         '</div>';
     
     $('#help-guide-content').html(html);
+};
+
+// ==================== PROPERTIES PANEL RENDERERS ====================
+
+WorkflowDesigner.prototype.renderPropertiesPanel = function(element) {
+    var self = this;
+    var type = element.type;
+    
+    // Route to specific renderer based on element type
+    if (type === 'bpmn:UserTask') {
+        self.renderUserTaskProperties(element);
+    } else if (type === 'bpmn:ScriptTask') {
+        self.renderScriptTaskProperties(element);
+    } else if (type === 'bpmn:ServiceTask') {
+        self.renderServiceTaskProperties(element);
+    } else if (type === 'bpmn:ExclusiveGateway' || type === 'bpmn:ParallelGateway') {
+        self.renderGatewayProperties(element);
+    } else if (type ===  'bpmn:SequenceFlow') {
+        self.renderSequenceFlowProperties(element);
+    } else {
+        // Default properties for other elements
+        self.renderDefaultProperties(element);
+    }
+};
+
+WorkflowDesigner.prototype.renderDefaultProperties = function(element) {
+    var html = '<div class="properties-form">' +
+        '<h6 class="mb-3">' + element.type.replace('bpmn:', '') + '</h6>' +
+        '<div class="form-group">' +
+            '<label>ID:</label>' +
+            '<input type="text" class="form-control" value="' + element.id + '" disabled>' +
+        '</div>' +
+        '<div class="form-group">' +
+            '<label>Name:</label>' +
+            '<input type="text" class="form-control prop-name" value="' + (element.businessObject.name || '') + '">' +
+        '</div>' +
+        '<button class="btn btn-primary btn-sm mt-2 save-props">Save</button>' +
+        '</div>';
+    
+    $('#properties-panel').html(html);
+    
+    var self = this;
+    $('#properties-panel .save-props').on('click', function() {
+        self.updateElementProperty(element, 'name', $('.prop-name').val());
+    });
+};
+
+WorkflowDesigner.prototype.updateElementProperty = function(element, property, value) {
+    var self = this;
+    var modeling = self.bpmnModeler.get('modeling');
+    var updates = {};
+    updates[property] = value;
+    modeling.updateProperties(element, updates);
+    frappe.show_alert({message: 'Property updated', indicator: 'green'});
+};
+
+WorkflowDesigner.prototype.updateActivitiProperty = function(element, property, value) {
+    var self = this;
+    var modeling = self.bpmnModeler.get('modeling');
+    var updates = {};
+    updates['activiti:' + property] = value;
+    modeling.updateProperties(element, updates);
+};
+
+WorkflowDesigner.prototype.renderUserTaskProperties = function(element) {
+    var self = this;
+    var bo = element.businessObject;
+    
+    // Get current values
+    var name = bo.name || '';
+    var assignee = bo.$attrs['activiti:assignee'] || '';
+    var candidateGroups = bo.$attrs['activiti:candidateGroups'] || '';
+    var dueDate = bo.$attrs['activiti:dueDate'] || '';
+    
+    var html = '<div class="properties-form">' +
+        '<h6 class="mb-3"><i class="fa fa-user"></i> User Task Properties</h6>' +
+        '<div class="form-group">' +
+            '<label>Name: <span class="text-danger">*</span></label>' +
+            '<input type="text" class="form-control prop-name" value="' + name + '" placeholder="e.g., Manager Approval">' +
+        '</div>' +
+        '<hr>' +
+        '<h6 class="mb-2">Assignment</h6>' +
+        '<div class="form-group">' +
+            '<label>' +
+                '<input type="radio" name="assignment-type" value="user" ' + (assignee ? 'checked' : '') + '> ' +
+                'Assign to Specific User' +
+            '</label>' +
+            '<div class="mt-2 assignment-user" style="display:' + (assignee ? 'block' : 'none') + '">' +
+                '<input type="text" class="form-control prop-assignee" value="' + assignee + '" placeholder="${doc.owner} or user@example.com">' +
+                '<small class="form-text text-muted">Use ${doc.field_name} for dynamic assignment</small>' +
+            '</div>' +
+        '</div>' +
+        '<div class="form-group">' +
+            '<label>' +
+                '<input type="radio" name="assignment-type" value="role" ' + (candidateGroups ? 'checked' : '') + '> ' +
+                'Assign to Role' +
+            '</label>' +
+            '<div class="mt-2 assignment-role" style="display:' + (candidateGroups ? 'block' : 'none') + '">' +
+                '<input type="text" class="form-control prop-role" value="' + candidateGroups + '" placeholder="e.g., Manager, Approver">' +
+                '<small class="form-text text-muted">Enter Frappe role name</small>' +
+            '</div>' +
+        '</div>' +
+        '<hr>' +
+        '<div class="form-group">' +
+            '<label>Due Date:</label>' +
+            '<input type="text" class="form-control prop-duedate" value="' + dueDate + '" placeholder="e.g., 3d, 1w, 2h">' +
+            '<small class="form-text text-muted">Examples: 3d=3 days, 1w=1 week, 2h=2 hours</small>' +
+        '</div>' +
+        '<button class="btn btn-primary btn-sm mt-3 save-user-task-props">Save Properties</button>' +
+        '</div>';
+    
+    $('#properties-panel').html(html);
+    
+    // Event listeners
+    $('input[name="assignment-type"]').on('change', function() {
+        if ($(this).val() === 'user') {
+            $('.assignment-user').show();
+            $('.assignment-role').hide();
+        } else {
+            $('.assignment-user').hide();
+            $('.assignment-role').show();
+        }
+    });
+    
+    $('.save-user-task-props').on('click', function() {
+        var name = $('.prop-name').val();
+        var assignmentType = $('input[name="assignment-type"]:checked').val();
+        var assignee = $('.prop-assignee').val();
+        var role = $('.prop-role').val();
+        var dueDate = $('.prop-duedate').val();
+        
+        // Update name
+        self.updateElementProperty(element, 'name', name);
+        
+        // Update assignment
+        if (assignmentType === 'user' && assignee) {
+            self.updateActivitiProperty(element, 'assignee', assignee);
+            self.updateActivitiProperty(element, 'candidateGroups', '');
+        } else if (assignmentType === 'role' && role) {
+            self.updateActivitiProperty(element, 'candidateGroups', role);
+            self.updateActivitiProperty(element, 'assignee', '');
+        }
+        
+        // Update due date
+        if (dueDate) {
+            self.updateActivitiProperty(element, 'dueDate', dueDate);
+        }
+        
+        frappe.show_alert({message: 'User task properties updated', indicator: 'green'});
+    });
+};
+
+WorkflowDesigner.prototype.renderScriptTaskProperties = function(element) {
+    var self = this;
+    var bo = element.businessObject;
+    
+    var name = bo.name || '';
+    var script = bo.script || '';
+    
+    var html = '<div class="properties-form">' +
+        '<h6 class="mb-3"><i class="fa fa-code"></i> Script Task Properties</h6>' +
+        '<div class="form-group">' +
+            '<label>Name: <span class="text-danger">*</span></label>' +
+            '<input type="text" class="form-control prop-name" value="' + name + '" placeholder="e.g., Send Email">' +
+        '</div>' +
+        '<hr>' +
+        '<div class="form-group">' +
+            '<label>Python Script:</label>' +
+            '<div id="monaco-editor" style="height: 300px; border: 1px solid #ddd;"></div>' +
+            '<small class="form-text text-muted">Access workflow context via: context.get_variable(), context.set_variable()</small>' +
+        '</div>' +
+        '<button class="btn btn-primary btn-sm mt-3 save-script-task-props">Save Properties</button>' +
+        '</div>';
+    
+    $('#properties-panel').html(html);
+    
+    // Initialize Monaco Editor if available, otherwise use textarea
+    var editor;
+    if (window.monaco) {
+        editor = monaco.editor.create(document.getElementById('monaco-editor'), {
+            value: script,
+            language: 'python',
+            theme: 'vs-dark',
+            minimap: { enabled: false },
+            scrollBeyondLastLine: false,
+            fontSize: 12
+        });
+    } else {
+        // Fallback to textarea
+        $('#monaco-editor').replaceWith('<textarea id="script-textarea" class="form-control" rows="10" style="font-family: monospace;">' + script + '</textarea>');
+    }
+    
+    $('.save-script-task-props').on('click', function() {
+        var name = $('.prop-name').val();
+        var scriptContent;
+        
+        if (window.monaco && editor) {
+            scriptContent = editor.getValue();
+        } else {
+            scriptContent = $('#script-textarea').val();
+        }
+        
+        self.updateElementProperty(element, 'name', name);
+        
+        // Update script content in BPMN element
+        var modeling = self.bpmnModeler.get('modeling');
+        var moddle = self.bpmnModeler.get('moddle');
+        
+        // Create script element
+        var scriptElement = moddle.create('bpmn:Script', {
+            value: scriptContent
+        });
+        
+        modeling.updateProperties(element, {
+            script: scriptContent,
+            scriptFormat: 'python'
+        });
+        
+        frappe.show_alert({message: 'Script task properties updated', indicator: 'green'});
+        
+        // Cleanup Monaco editor
+        if (editor) {
+            editor.dispose();
+        }
+    });
+};
+
+WorkflowDesigner.prototype.renderGatewayProperties = function(element) {
+    var self = this;
+    var bo = element.businessObject;
+    var name = bo.name || '';
+    var gatewayType = element.type.replace('bpmn:', '');
+    
+    var html = '<div class="properties-form">' +
+        '<h6 class="mb-3"><i class="fa fa-code-fork"></i> ' + gatewayType + ' Properties</h6>' +
+        '<div class="form-group">' +
+            '<label>Name:</label>' +
+            '<input type="text" class="form-control prop-name" value="' + name + '" placeholder="e.g., Approval Decision">' +
+        '</div>' +
+        '<hr>' +
+        '<h6 class="mb-2">Outgoing Flows</h6>' +
+        '<p class="text-muted">Select individual flows to set conditions</p>' +
+        '</div>';
+    
+    $('#properties-panel').html(html);
+    
+    $('.save-props').on('click', function() {
+        var name = $('.prop-name').val();
+        self.updateElementProperty(element, 'name', name);
+    });
+};
+
+WorkflowDesigner.prototype.renderSequenceFlowProperties = function(element) {
+    var self = this;
+    var bo = element.businessObject;
+    var name = bo.name || '';
+    var condition = '';
+    
+    // Get condition expression if exists
+    if (bo.conditionExpression && bo.conditionExpression.body) {
+        condition = bo.conditionExpression.body;
+    }
+    
+    var html = '<div class="properties-form">' +
+        '<h6 class="mb-3"><i class="fa fa-arrow-right"></i> Sequence Flow Properties</h6>' +
+        '<div class="form-group">' +
+            '<label>Name:</label>' +
+            '<input type="text" class="form-control prop-name" value="' + name + '" placeholder="e.g., Approved, Rejected">' +
+        '</div>' +
+        '<hr>' +
+        '<div class="form-group">' +
+            '<label>Condition (Python Expression):</label>' +
+            '<textarea class="form-control prop-condition" rows="4" placeholder="e.g., context.get_variable(\'approved\') == True">' + condition + '</textarea>' +
+            '<small class="form-text text-muted">Python expression that evaluates to True/False. Leave empty for default flow.</small>' +
+        '</div>' +
+        '<div class="alert alert-info mt-2">' +
+            '<strong>Examples:</strong><br>' +
+            '• context.get_variable(\'action\') == \'Approve\'<br>' +
+            '• context.get_variable(\'amount\') > 1000<br>' +
+            '• context.doc.status == \'Pending\'<br>' +
+        '</div>' +
+        '<button class="btn btn-primary btn-sm mt-2 save-flow-props">Save Properties</button>' +
+        '</div>';
+    
+    $('#properties-panel').html(html);
+    
+    $('.save-flow-props').on('click', function() {
+        var name = $('.prop-name').val();
+        var conditionText = $('.prop-condition').val();
+        
+        self.updateElementProperty(element, 'name', name);
+        
+        // Update condition expression
+        if (conditionText) {
+            var modeling = self.bpmnModeler.get('modeling');
+            var moddle = self.bpmnModeler.get('moddle');
+            
+            var conditionExpression = moddle.create('bpmn:FormalExpression', {
+                body: conditionText
+            });
+            
+            modeling.updateProperties(element, {
+                conditionExpression: conditionExpression
+            });
+        }
+        
+        frappe.show_alert({message: 'Sequence flow properties updated', indicator: 'green'});
+    });
+};
+
+WorkflowDesigner.prototype.renderServiceTaskProperties = function(element) {
+    var self = this;
+    var bo = element.businessObject;
+    
+    var name = bo.name || '';
+    var implementation = bo.$attrs['activiti:class'] || bo.implementation || '';
+    
+    var html = '<div class="properties-form">' +
+        '<h6 class="mb-3"><i class="fa fa-cog"></i> Service Task Properties</h6>' +
+        '<div class="form-group">' +
+            '<label>Name: <span class="text-danger">*</span></label>' +
+            '<input type="text" class="form-control prop-name" value="' + name + '" placeholder="e.g., Call External API">' +
+        '</div>' +
+        '<hr>' +
+        '<div class="form-group">' +
+            '<label>API Method/Class:</label>' +
+            '<input type="text" class="form-control prop-implementation" value="' + implementation + '" placeholder="e.g., workflow_engine.api.send_email">' +
+            '<small class="form-text text-muted">Python method path to execute</small>' +
+        '</div>' +
+        '<button class="btn btn-primary btn-sm mt-3 save-service-task-props">Save Properties</button>' +
+        '</div>';
+    
+    $('#properties-panel').html(html);
+    
+    $('.save-service-task-props').on('click', function() {
+        var name = $('.prop-name').val();
+        var implementation = $('.prop-implementation').val();
+        
+        self.updateElementProperty(element, 'name', name);
+        
+        if (implementation) {
+            self.updateActivitiProperty(element, 'class', implementation);
+        }
+        
+        frappe.show_alert({message: 'Service task properties updated', indicator: 'green'});
+    });
 };
